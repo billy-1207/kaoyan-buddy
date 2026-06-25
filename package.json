@@ -1,7 +1,7 @@
 {
   "name": "kaoyan-buddy",
   "version": "1.0.0",
-  "versionCode": 18,
+  "versionCode": 19,
   "releaseNotes": "首个正式版本：首页仪表盘、任务管理、番茄钟、打卡日历、AI 搭子",
   "minVersionCode": 1,
   "private": true,
