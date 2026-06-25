@@ -38,3 +38,5 @@ public/updates/
 node_modules/
 .next/
 out/
+kaoyan-buddy.keystore
+releases/
