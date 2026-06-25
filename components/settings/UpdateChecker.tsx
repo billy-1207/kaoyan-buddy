@@ -9,7 +9,9 @@ interface VersionInfo {
   releaseNotes: string;
 }
 
-const CURRENT_VERSION_CODE = 1;
+const CURRENT_VERSION_CODE = 17;
+const GITHUB_VERSION_URL =
+  "https://raw.githubusercontent.com/billy-1207/kaoyan-buddy/master/version.json";
 
 export function UpdateChecker() {
   const [checking, setChecking] = useState(false);
@@ -23,11 +25,8 @@ export function UpdateChecker() {
     setUpdate(null);
 
     try {
-      const serverUrl = localStorage.getItem("kaoyan_server_url") ||
-        `http://${window.location.hostname}:3001`;
-
-      const res = await fetch(`${serverUrl}/api/version`, {
-        signal: AbortSignal.timeout(5000),
+      const res = await fetch(GITHUB_VERSION_URL, {
+        signal: AbortSignal.timeout(10000),
       });
 
       if (!res.ok) throw new Error("服务器无响应");
@@ -37,11 +36,30 @@ export function UpdateChecker() {
       if (info.versionCode > CURRENT_VERSION_CODE) {
         setUpdate(info);
       } else {
-        setMessage("✅ 已是最新版本 v" + info.version);
+        setMessage("✅ 已是最新版本 v" + info.version + " (build " + info.versionCode + ")");
         setTimeout(() => setMessage(""), 3000);
       }
     } catch {
-      setError("无法连接更新服务器。请确保电脑端正在运行且连同一 WiFi。");
+      // Fallback: try local server
+      try {
+        const serverUrl = localStorage.getItem("kaoyan_server_url");
+        if (serverUrl) {
+          const res = await fetch(`${serverUrl}/api/version`, {
+            signal: AbortSignal.timeout(5000),
+          });
+          if (res.ok) {
+            const info: VersionInfo = await res.json();
+            if (info.versionCode > CURRENT_VERSION_CODE) {
+              setUpdate(info);
+            } else {
+              setMessage("✅ 已是最新版本 v" + info.version);
+              setTimeout(() => setMessage(""), 3000);
+            }
+            return;
+          }
+        }
+      } catch {}
+      setError("无法连接更新服务器。请检查网络连接。");
     } finally {
       setChecking(false);
     }
@@ -49,13 +67,9 @@ export function UpdateChecker() {
 
   const handleDownload = () => {
     if (!update) return;
-    const serverUrl = localStorage.getItem("kaoyan_server_url") ||
-      `http://${window.location.hostname}:3001`;
-    const apkUrl = `${serverUrl}${update.apkUrl}`;
-
-    // Open download URL - Android will download and prompt to install
-    window.open(apkUrl, "_blank");
-    setMessage("📥 下载已开始。请在通知栏查看进度，下载完成后点击安装。");
+    // Open APK URL in browser/download manager
+    window.open(update.apkUrl, "_blank");
+    setMessage("📥 下载已开始。下载完成后点击安装。");
     setTimeout(() => setMessage(""), 6000);
   };
 
@@ -72,7 +86,7 @@ export function UpdateChecker() {
         >
           {checking ? "⏳ 检查中..." : "🔍 检查新版本"}
         </Button>
-        <span className="text-xs text-muted">当前版本: v1.0.0</span>
+        <span className="text-xs text-muted">当前版本: build {CURRENT_VERSION_CODE}</span>
       </div>
 
       {message && (
@@ -108,7 +122,7 @@ export function UpdateChecker() {
       )}
 
       <p className="text-xs text-muted">
-        💡 App 的新版本通过电脑端分发。电脑开启服务器且连同一 WiFi 即可检查更新。
+        💡 更新从 GitHub 直接下载，无需电脑在线
       </p>
     </div>
   );
