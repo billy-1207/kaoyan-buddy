@@ -1,7 +1,6 @@
 "use client";
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Browser } from "@capacitor/browser";
 
 interface VersionInfo {
   version: string;
@@ -10,7 +9,7 @@ interface VersionInfo {
   releaseNotes: string;
 }
 
-const CURRENT_VERSION_CODE = 22;
+const CURRENT_VERSION_CODE = 23;
 const GITHUB_VERSION_URL =
   "https://raw.githubusercontent.com/billy-1207/kaoyan-buddy/master/version.json";
 
@@ -66,14 +65,17 @@ export function UpdateChecker() {
     }
   }, []);
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (!update) return;
-    try {
-      await Browser.open({ url: update.apkUrl });
-    } catch {
-      window.open(update.apkUrl, "_blank");
-    }
-    setMessage("📥 下载开始，完成后下拉通知栏点击安装");
+    // Use an invisible <a> tag to trigger Android Download Manager
+    const a = document.createElement("a");
+    a.href = update.apkUrl;
+    a.download = "kaoyan-buddy.apk";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setMessage("📥 下载开始，完成后下滑通知栏点击安装");
     setTimeout(() => setMessage(""), 6000);
   };
 
