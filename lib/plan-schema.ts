@@ -94,6 +94,7 @@ export interface AIBuddyConfig {
   customPrompt?: string;
   proactivity: Proactivity;
   nickname: string;
+  avatarUrl?: string;
 }
 
 // ── AI 消息 ──

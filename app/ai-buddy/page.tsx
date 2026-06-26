@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { aiChat } from "@/lib/api";
+import { BuddyAvatar } from "@/components/ai-buddy/BuddyAvatar";
 import type { AIMessage, AIBuddyConfig } from "@/lib/plan-schema";
 
 export default function AIBuddyPage() {
@@ -80,7 +81,7 @@ export default function AIBuddyPage() {
       <div className="flex flex-col h-[70vh] lg:h-[calc(100vh-12rem)] bg-white rounded-xl shadow-sm border border-mid overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b border-mid bg-light/50">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🤖</span>
+            <BuddyAvatar size="default" />
             <div>
               <p className="font-medium text-sm text-primary">
                 AI 考研搭子
@@ -97,7 +98,9 @@ export default function AIBuddyPage() {
         <div className="flex-1 overflow-y-auto p-4">
           {messages.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-4xl mb-3">🤖</p>
+              <div className="flex justify-center mb-3">
+                <BuddyAvatar size="lg" />
+              </div>
               <p className="text-muted text-sm">你的考研搭子随时待命</p>
               <p className="text-muted text-xs mt-1">问问题、聊天、吐槽都可以~</p>
             </div>
@@ -108,13 +111,11 @@ export default function AIBuddyPage() {
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} mb-3`}
             >
               <div className={`flex gap-2 max-w-[80%] ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${
-                    msg.role === "user" ? "bg-primary text-white" : "bg-accent text-white"
-                  }`}
-                >
-                  {msg.role === "user" ? "👤" : "🤖"}
-                </div>
+                {msg.role === "user" ? (
+                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm flex-shrink-0">👤</div>
+                ) : (
+                  <BuddyAvatar size="sm" className="flex-shrink-0" />
+                )}
                 <div
                   className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                     msg.role === "user"

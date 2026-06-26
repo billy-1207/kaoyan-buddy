@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { UpdateChecker } from "@/components/settings/UpdateChecker";
 import { uploadToCloud, downloadFromCloud } from "@/lib/supabase-service";
+import { BuddyAvatar } from "@/components/ai-buddy/BuddyAvatar";
 import type { AIBuddyConfig } from "@/lib/plan-schema";
 
 const tabs = [
@@ -16,7 +17,7 @@ const tabs = [
   { id: "data", label: "💾 数据管理" },
 ];
 
-const pouches = [
+const pouchPool = [
   { icon: "⏱️", title: "今天只学 2 分钟", quote: "你不是不想学，你只是不想开始。", body: "万事开头难是骗人的。真正难的不是「做2小时数学」，而是「把屁股放到椅子上」。当你不想学的时候，和自己说：「我只学2分钟。2分钟后不想学了就停。」——几乎每次，一旦开始就不会停。", tag: "启动困难用这个" },
   { icon: "⛓️", title: "链不能断", quote: "连续性是习惯的氧气。", body: "今天状态再差，完成「最低版本」就行——做一道数学题、背50个单词、出门走一圈。一共40分钟。一天都不允许完全中断。因为断一次，「反正昨天也没学」的心态会让你断第二次、第三次。", tag: "状态差时用这个" },
   { icon: "☕", title: "把诱惑绑在学习上", quote: "利用你想做的事，驱动你该做的事。", body: "只有学习的时候才能喝你最爱的咖啡。只有完成上午任务后才能刷10分钟视频。把高频行为（刷手机）和低频行为（学习）绑定——你的大脑会主动想学。", tag: "缺动力时用这个" },
@@ -24,8 +25,43 @@ const pouches = [
   { icon: "🍅", title: "种一棵番茄树", quote: "25分钟，只做一件事。", body: "把手机放另一个房间。设25分钟倒计时。任何「想查一下」的冲动写到便签纸上，番茄结束后再处理。每完成一个番茄就种一棵虚拟树——你的专注森林正在生长。", tag: "注意力涣散用这个" },
   { icon: "🎯", title: "你是自己的主人", quote: "自主、胜任、归属——三个需求满足，动机自然产生。", body: "自主感：每天的学习顺序你自己定。胜任感：每周末回顾一下「这周我学会了什么之前不会的」。归属感：找1-2个研友，每天互相打卡。独自学习最容易陷入「只有我最痛苦」的错觉。", tag: "迷茫时用这个" },
   { icon: "🌈", title: "让今天以「我能行」结束", quote: "好的结束 = 明天期待继续。", body: "诺贝尔奖得主发现：人们对一段经历的记忆，取决于「最强烈的时刻」和「最后时刻」。所以每天最后一个学习动作，做一道你会做的题。让今天在自信中结束，明天才想继续。", tag: "收尾时用这个" },
+
+  { icon: "🏃", title: "5分钟法则", quote: "任何事只做5分钟。5分钟后想停就停。", body: "大脑对「开始」的抗拒远大于「持续」。告诉自己只做5分钟，翻开书、写两个字。5分钟到了你99%会继续。行动本身会消除抗拒。", tag: "启动困难" },
+  { icon: "📉", title: "允许退步日", quote: "进步不是线性的，螺旋上升才是常态。", body: "今天做题错得比昨天多？太棒了，你找到薄弱点了。每次退步都是系统在告诉你：这里需要加固。接纳退步，精准补上。", tag: "挫败时" },
+  { icon: "🧩", title: "换个科目就是休息", quote: "最好的休息不是刷手机，是换脑。", body: "学数学累了背英语，背累了做政治。不同脑区切换本身就是休息。刷手机只会让大脑更累。", tag: "疲劳时" },
+  { icon: "🪞", title: "想象考完的自己", quote: "现在的每一分钟，都在给考完的自己写信。", body: "闭眼想象考试结束那天的自己——是懊悔「当初再多学一点就好了」，还是欣慰「感谢那段时间拼尽全力的自己」？答案你现在就在写。", tag: "缺动力" },
+  { icon: "🧠", title: "睡眠是最好的复习", quote: "你睡着的时候，大脑在帮你整理。", body: "睡眠中大脑会整理记忆、强化神经连接。熬夜4小时不如正常睡觉+早起2小时。别拿睡眠换学习时间。", tag: "熬夜时" },
+  { icon: "🗑️", title: "扔掉完美主义", quote: "完成比完美重要100倍。", body: "一道题卡了半小时？跳过、标记、回头再啃。作文开头不满意？写完再说。考研不是比谁每道题完美，是比总分。", tag: "追求完美" },
+  { icon: "🌊", title: "顺其自然，为所当为", quote: "焦虑不是敌人，对抗焦虑才是。", body: "森田疗法核心：接纳内心的不安，但该做什么就做什么。带着焦虑翻开书本，行动本身就会消解焦虑。不要等不焦虑了再行动。", tag: "焦虑时" },
+  { icon: "📖", title: "费曼学习法", quote: "教给别人是最高效的学习。", body: "假装把知识点讲给完全不懂的人听。用最简单的语言解释。卡住的地方就是没真懂的地方。能讲明白才算真会。", tag: "学不进去" },
+  { icon: "🎲", title: "计划要留白", quote: "过满的计划 = 必然会失败。", body: "不要排满每一分钟。留20%空白。今天只列3件最重要的事，完成就算赢。排越满越容易崩盘——比不排还糟。", tag: "做计划" },
+  { icon: "🛑", title: "刷题要「停」", quote: "做100道题不如搞懂10道错题。", body: "做完一套卷子不要立刻刷下一套。停下来拆解错题：为什么错？知识漏洞还是粗心？正确路径是什么？一周后重做还会吗？这才是有效刷题。", tag: "刷题时" },
+  { icon: "💧", title: "高原期是好事", quote: "感觉没进步时，恰是进步最快时。", body: "学习曲线有平台期——努力很久却感觉原地踏步。这是大脑在重构知识网络。继续坚持，突破就在下一次。", tag: "瓶颈期" },
+  { icon: "🏆", title: "考研是排位赛", quote: "你不需要满分，你只需要比别人多1分。", body: "考研是选拔考试。精力放在提分性价比最高的地方：薄弱科目空间最大，重点攻克。", tag: "迷茫时" },
+  { icon: "📵", title: "手机是时间黑洞", quote: "你和手机的关系 = 你和录取通知书的关系。", body: "把手机设灰度模式（辅助功能→显示）。鲜艳颜色专门设计来抓注意力。灰色让一切变无聊，刷手机的欲望大幅下降。", tag: "放不下手机" },
+  { icon: "🧘", title: "健康是第一生产力", quote: "身体状态 = 学习效率。", body: "考研是马拉松不是拼命。规律吃饭、每周运动、保持社交。身体好的那天效率是差的3倍。投资健康就是投资分数。", tag: "透支时" },
+  { icon: "🎁", title: "设计你的奖励", quote: "大脑需要即时反馈才能持续。", body: "完成3件要事→奖励一集剧。完成一周→吃顿好的。完成一阶段→买想要的书。给大脑期待，它会推着你往前。", tag: "缺动力" },
+  { icon: "🔋", title: "番茄钟不是闹钟", quote: "25分钟的魔法在于重新开始。", body: "走神了不要自责，直接开始。25分钟后重新计时，那是全新的25分钟。上一个不完美的番茄已经过去了。你永远可以重新开始。", tag: "注意力差" },
   { icon: "🤝", title: "找个不会辜负的人", quote: "恐惧驱动 = 焦虑。行为驱动 = 行动。", body: "找一个最信任的朋友，约定：今天没完成最低学习量就给他转200块钱。或者公开你的考研计划——「从今天起，每天打卡180天」。公开承诺后，你的大脑会自动让行为与承诺一致。", tag: "需要监督时用这个" },
 ];
+
+interface PouchItem { icon: string; title: string; quote: string; body: string; tag: string; }
+const REVIEW_COUNT = 8;
+
+function shuffleFromPool(pool: PouchItem[]) {
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, REVIEW_COUNT);
+}
+
+function getCurrentPool(): PouchItem[] {
+  if (typeof window === "undefined") return pouchPool;
+  const p = (window as unknown as Record<string, unknown>).__pouchPool;
+  return Array.isArray(p) ? (p as PouchItem[]) : pouchPool;
+}
+
+function shufflePouches() {
+  return shuffleFromPool(getCurrentPool());
+}
 
 const reviewQuestions = [
   "本周最大的收获是什么？",
@@ -62,7 +98,53 @@ export default function SettingsPage() {
   const [openPouch, setOpenPouch] = useState<number | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [cloudSyncing, setCloudSyncing] = useState(false);
+  const [pouches, setPouches] = useState(() => shufflePouches());
+  const [pouchSource, setPouchSource] = useState<"loading" | "network" | "local">("loading");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch pouches from GitHub (can update without rebuilding APK)
+  useEffect(() => {
+    const GITHUB_POUCHES_URL =
+      "https://raw.githubusercontent.com/billy-1207/kaoyan-buddy/master/public/pouches.json";
+    const CACHE_KEY = "kaoyan_pouches_cache";
+
+    (async () => {
+      try {
+        const res = await fetch(GITHUB_POUCHES_URL, {
+          signal: AbortSignal.timeout(8000),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json) && json.length > 0) {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(json));
+            // Merge with any new network pouches
+            const merged = [...json]; // network data
+            (window as unknown as Record<string, unknown>).__pouchPool = merged;
+            setPouchSource("network");
+            setPouches(shuffleFromPool(merged));
+            return;
+          }
+        }
+      } catch {}
+      // Try cache
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const json = JSON.parse(cached);
+          if (Array.isArray(json) && json.length > 0) {
+            (window as unknown as Record<string, unknown>).__pouchPool = json;
+            setPouchSource("local");
+            setPouches(shuffleFromPool(json));
+            return;
+          }
+        }
+      } catch {}
+      // Fall back to built-in pool
+      (window as unknown as Record<string, unknown>).__pouchPool = pouchPool;
+      setPouchSource("local");
+      setPouches(shufflePouches());
+    })();
+  }, []);
 
   useEffect(() => {
     db.aiConfig.get("main").then((c) => setAiConfig(c || null));
@@ -292,7 +374,21 @@ export default function SettingsPage() {
             <div className="text-center mb-6">
               <p className="text-4xl mb-2">🎒</p>
               <h3 className="font-bold text-primary text-lg">考研锦囊</h3>
-              <p className="text-sm text-muted mt-1">每次打开，随机送你一个「撑下去」的理由</p>
+              <p className="text-sm text-muted mt-1">
+                {pouchSource === "loading"
+                  ? "正在更新锦囊..."
+                  : pouchSource === "network"
+                  ? `☁️ 已获取最新锦囊，共 ${getCurrentPool().length} 条`
+                  : `共 ${getCurrentPool().length} 条`}
+              </p>
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => setPouches(shufflePouches())}
+                className="mt-2"
+              >
+                🔄 换一批
+              </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {pouches.map((pouch, i) => (
@@ -395,6 +491,58 @@ export default function SettingsPage() {
         {activeTab === "ai" && aiConfig && (
           <div className="space-y-4">
             <h3 className="font-bold text-primary">🎭 AI 搭子设置</h3>
+
+            {/* Avatar Upload */}
+            <div className="flex items-center gap-4 p-4 bg-light rounded-xl">
+              <BuddyAvatar size="lg" />
+              <div>
+                <p className="text-sm font-medium text-text">搭子头像</p>
+                <p className="text-xs text-muted mb-2">上传一张照片作为搭子形象</p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => {
+                      const input = document.createElement("input");
+                      input.type = "file";
+                      input.accept = "image/*";
+                      input.onchange = async (e: Event) => {
+                        const target = e.target as HTMLInputElement;
+                        const file = target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = async () => {
+                          const avatarUrl = reader.result as string;
+                          const updated = { ...aiConfig, avatarUrl };
+                          setAiConfig(updated);
+                          await db.aiConfig.put(updated);
+                          window.dispatchEvent(new Event("buddy-avatar-changed"));
+                        };
+                        reader.readAsDataURL(file);
+                      };
+                      input.click();
+                    }}
+                  >
+                    📷 上传照片
+                  </Button>
+                  {aiConfig.avatarUrl && (
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      className="text-warn border-warn hover:bg-warn/5"
+                      onClick={async () => {
+                        const updated = { ...aiConfig, avatarUrl: undefined };
+                        setAiConfig(updated);
+                        await db.aiConfig.put(updated);
+                        window.dispatchEvent(new Event("buddy-avatar-changed"));
+                      }}
+                    >
+                      🗑 还原默认
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
 
             {/* AI Provider */}
             <div>

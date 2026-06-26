@@ -10,7 +10,7 @@ interface VersionInfo {
   releaseNotes: string;
 }
 
-const CURRENT_VERSION_CODE = 20;
+const CURRENT_VERSION_CODE = 22;
 const GITHUB_VERSION_URL =
   "https://raw.githubusercontent.com/billy-1207/kaoyan-buddy/master/version.json";
 
