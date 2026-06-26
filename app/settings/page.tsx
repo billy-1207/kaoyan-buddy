@@ -102,6 +102,28 @@ export default function SettingsPage() {
   const [pouchSource, setPouchSource] = useState<"loading" | "network" | "local">("loading");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // DOCX text parser (client-side, works without server)
+  function parsePlanText(text: string) {
+    const extracted: Record<string, unknown> = {
+      targetSchool: text.match(/目标院校[：:]\s*(.+)/)?.[1]?.trim() || "",
+      targetMajor: "人工智能专业",
+      targetScore: text.match(/目标总分[：:]\s*(\d+)/)?.[1] ? parseInt(text.match(/目标总分[：:]\s*(\d+)/)![1]) : 390,
+      prepPeriod: text.match(/备考周期[：:]\s*(.+)/)?.[1]?.trim() || "",
+      subjects: [] as string[],
+      phases: [] as string[],
+    };
+    const phasePattern = /第[一二三四]阶段[：:]\s*([^\n]+)/g;
+    let match;
+    while ((match = phasePattern.exec(text)) !== null) {
+      (extracted.phases as string[]).push(match[1].trim());
+    }
+    const subjectPattern = /(数学|408|英语|政治)[^\n]*目标/g;
+    while ((match = subjectPattern.exec(text)) !== null) {
+      (extracted.subjects as string[]).push(match[0].trim());
+    }
+    return extracted;
+  }
+
   // Fetch pouches from GitHub (can update without rebuilding APK)
   useEffect(() => {
     const GITHUB_POUCHES_URL =
@@ -161,11 +183,13 @@ export default function SettingsPage() {
     if (!file.name.endsWith(".docx")) { setDocxError("请上传 .docx 格式的文件"); return; }
     setDocxLoading(true); setDocxError(""); setDocxResult(null);
     try {
-      const formData = new FormData(); formData.append("file", file);
-      const res = await fetch("/api/docx/parse", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.error) setDocxError(data.error); else setDocxResult(data.extracted);
-    } catch { setDocxError("解析失败，请检查文件格式"); }
+      // Parse client-side using mammoth (works in browser & APK)
+      const mammoth = await import("mammoth");
+      const buffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ buffer: buffer as unknown as Buffer });
+      const extracted = parsePlanText(result.value);
+      setDocxResult(extracted);
+    } catch { setDocxError("解析失败，请检查文件格式（.docx，非 .doc）"); }
     finally { setDocxLoading(false); }
   };
 
