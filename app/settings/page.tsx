@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { UpdateChecker } from "@/components/settings/UpdateChecker";
+import { uploadToCloud, downloadFromCloud } from "@/lib/supabase-service";
 import type { AIBuddyConfig } from "@/lib/plan-schema";
 
 const tabs = [
@@ -60,6 +61,7 @@ export default function SettingsPage() {
   const [reviewSaved, setReviewSaved] = useState(false);
   const [openPouch, setOpenPouch] = useState<number | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [cloudSyncing, setCloudSyncing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -92,7 +94,9 @@ export default function SettingsPage() {
         subjects: await db.subjects.toArray(), checkIns: await db.checkIns.toArray(),
         dailyTasks: await db.dailyTasks.toArray(), pomodoroSessions: await db.pomodoroSessions.toArray(),
         aiConfig: await db.aiConfig.get("main"), aiMessages: await db.aiMessages.toArray(),
+        dailySchedule: await db.dailySchedule.get("main"),
         milestones: await db.milestones.toArray(), emergencyPlans: await db.emergencyPlans.toArray(),
+        milestoneProgress: await db.milestoneProgress.toArray(),
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -119,8 +123,10 @@ export default function SettingsPage() {
         if (data.pomodoroSessions) await db.pomodoroSessions.bulkPut(data.pomodoroSessions);
         if (data.aiConfig) await db.aiConfig.put(data.aiConfig);
         if (data.aiMessages) await db.aiMessages.bulkPut(data.aiMessages);
+        if (data.dailySchedule) await db.dailySchedule.put(data.dailySchedule);
         if (data.milestones) await db.milestones.bulkPut(data.milestones);
         if (data.emergencyPlans) await db.emergencyPlans.bulkPut(data.emergencyPlans);
+        if (data.milestoneProgress) await db.milestoneProgress.bulkPut(data.milestoneProgress);
         setMessage("✅ 数据已导入，刷新页面生效");
         setTimeout(() => window.location.reload(), 1500);
       } catch { setMessage("❌ 文件格式错误"); }
@@ -162,7 +168,9 @@ export default function SettingsPage() {
         subjects: await db.subjects.toArray(), checkIns: await db.checkIns.toArray(),
         dailyTasks: await db.dailyTasks.toArray(), pomodoroSessions: await db.pomodoroSessions.toArray(),
         aiConfig: await db.aiConfig.get("main"), aiMessages: await db.aiMessages.toArray(),
+        dailySchedule: await db.dailySchedule.get("main"),
         milestones: await db.milestones.toArray(), emergencyPlans: await db.emergencyPlans.toArray(),
+        milestoneProgress: await db.milestoneProgress.toArray(),
       };
       const serverUrl = getServerUrl();
       const res = await fetch(`${serverUrl}/api/sync/upload`, {
@@ -192,12 +200,65 @@ export default function SettingsPage() {
       if (data.pomodoroSessions) await db.pomodoroSessions.bulkPut(data.pomodoroSessions);
       if (data.aiConfig) await db.aiConfig.put(data.aiConfig);
       if (data.aiMessages) await db.aiMessages.bulkPut(data.aiMessages);
+      if (data.dailySchedule) await db.dailySchedule.put(data.dailySchedule);
       if (data.milestones) await db.milestones.bulkPut(data.milestones);
       if (data.emergencyPlans) await db.emergencyPlans.bulkPut(data.emergencyPlans);
+      if (data.milestoneProgress) await db.milestoneProgress.bulkPut(data.milestoneProgress);
       setMessage("✅ 已从电脑同步数据，刷新页面生效");
       setTimeout(() => window.location.reload(), 1500);
     } catch { setMessage("❌ 同步失败，请确保电脑端服务器正在运行且同一 WiFi，且之前已上传过数据"); }
     setSyncing(false);
+    setTimeout(() => setMessage(""), 3000);
+  };
+
+  const handleCloudUpload = async () => {
+    setCloudSyncing(true); setMessage("");
+    try {
+      const data = {
+        config: await db.config.get("main"), phases: await db.phases.toArray(),
+        subjects: await db.subjects.toArray(), checkIns: await db.checkIns.toArray(),
+        dailyTasks: await db.dailyTasks.toArray(), pomodoroSessions: await db.pomodoroSessions.toArray(),
+        aiConfig: await db.aiConfig.get("main"), aiMessages: await db.aiMessages.toArray(),
+        dailySchedule: await db.dailySchedule.get("main"),
+        milestones: await db.milestones.toArray(), emergencyPlans: await db.emergencyPlans.toArray(),
+        milestoneProgress: await db.milestoneProgress.toArray(),
+      };
+      const result = await uploadToCloud(data);
+      setMessage(result.ok ? `✅ ${result.message}` : `❌ ${result.message}`);
+    } catch {
+      setMessage("❌ 上传失败，请检查网络");
+    }
+    setCloudSyncing(false);
+    setTimeout(() => setMessage(""), 3000);
+  };
+
+  const handleCloudDownload = async () => {
+    setCloudSyncing(true); setMessage("");
+    try {
+      const result = await downloadFromCloud();
+      if (!result.ok || !result.data) {
+        setMessage(`❌ ${result.message}`);
+      } else {
+        const data = result.data;
+        if (data.config) await db.config.put(data.config as Parameters<typeof db.config.put>[0]);
+        if (data.phases) await db.phases.bulkPut(data.phases as Parameters<typeof db.phases.bulkPut>[0]);
+        if (data.subjects) await db.subjects.bulkPut(data.subjects as Parameters<typeof db.subjects.bulkPut>[0]);
+        if (data.checkIns) await db.checkIns.bulkPut(data.checkIns as Parameters<typeof db.checkIns.bulkPut>[0]);
+        if (data.dailyTasks) await db.dailyTasks.bulkPut(data.dailyTasks as Parameters<typeof db.dailyTasks.bulkPut>[0]);
+        if (data.pomodoroSessions) await db.pomodoroSessions.bulkPut(data.pomodoroSessions as Parameters<typeof db.pomodoroSessions.bulkPut>[0]);
+        if (data.aiConfig) await db.aiConfig.put(data.aiConfig as Parameters<typeof db.aiConfig.put>[0]);
+        if (data.aiMessages) await db.aiMessages.bulkPut(data.aiMessages as Parameters<typeof db.aiMessages.bulkPut>[0]);
+        if (data.dailySchedule) await db.dailySchedule.put(data.dailySchedule as Parameters<typeof db.dailySchedule.put>[0]);
+        if (data.milestones) await db.milestones.bulkPut(data.milestones as Parameters<typeof db.milestones.bulkPut>[0]);
+        if (data.emergencyPlans) await db.emergencyPlans.bulkPut(data.emergencyPlans as Parameters<typeof db.emergencyPlans.bulkPut>[0]);
+        if (data.milestoneProgress) await db.milestoneProgress.bulkPut(data.milestoneProgress as Parameters<typeof db.milestoneProgress.bulkPut>[0]);
+        setMessage("✅ 已从云端同步数据，刷新页面生效");
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch {
+      setMessage("❌ 下载失败，请检查网络");
+    }
+    setCloudSyncing(false);
     setTimeout(() => setMessage(""), 3000);
   };
 
@@ -510,6 +571,45 @@ export default function SettingsPage() {
                 </Button>
                 <Button onClick={handleSyncDownload} disabled={syncing} variant="outline">
                   📥 电脑 → 手机
+                </Button>
+              </div>
+            </div>
+
+            <hr className="border-mid" />
+
+            {/* Cloud Sync */}
+            <div>
+              <h3 className="font-bold text-primary mb-2">☁️ 云端同步</h3>
+              <p className="text-xs text-muted mb-3">设一个同步码，手机和电脑用同一个码就能同步，不需要同一 WiFi</p>
+              <div className="mb-3">
+                <label className="text-xs font-medium text-text block mb-1">同步码</label>
+                <input
+                  type="text"
+                  defaultValue={
+                    typeof window !== "undefined"
+                      ? localStorage.getItem("sync_code") || ""
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    if (val) localStorage.setItem("sync_code", val);
+                    else localStorage.removeItem("sync_code");
+                  }}
+                  className="w-full px-3 py-2 rounded-lg border border-mid text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder="设置一个只有你知道的同步码"
+                />
+                <p className="text-xs text-muted mt-1">
+                  相同同步码的设备共享同一份数据
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={handleCloudUpload} disabled={cloudSyncing}
+                  className="bg-success hover:bg-success/90 text-white">
+                  📤 {cloudSyncing ? "同步中..." : "上传到云端"}
+                </Button>
+                <Button onClick={handleCloudDownload} disabled={cloudSyncing}
+                  variant="outline">
+                  📥 从云端下载
                 </Button>
               </div>
             </div>
